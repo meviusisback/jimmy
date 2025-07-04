@@ -1,0 +1,6 @@
+{
+  "name": "AI Workout Planner - vers. 3.0",
+  "description": "An intelligent workout logging application that uses AI to generate personalized workout plans, helps you track progress, and visualizes your strength gains over time.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
