@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { AppData, Screen } from '../types';
 import { getNextWorkout } from '../services/workoutLogic';
@@ -81,12 +80,12 @@ const ReturningUserView: React.FC<{ appData: AppData; onNavigate: (screen: Scree
 
             setIsLoadingSuggestion(true);
             try {
-                if (!process.env.API_KEY) {
+                /* if (!process.env.API_KEY) {
                     console.warn("AI suggestion requires an API_KEY environment variable.");
                     return; // Silently fail if no API key
                 }
 
-                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY }); */
 
                 const lastSession = appData.session_history[appData.session_history.length - 1];
                 const program = appData.workout_programs[0];
@@ -118,12 +117,23 @@ Respond in one line: a date string, a pipe "|", then a brief justification.
 Example: Friday, July 26|This provides optimal recovery for your ${appData.user_settings.experience} level and your program's intensity, keeping you on track for your ${program.frequency}-day schedule.
 `;
 
-                const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash-preview-04-17',
-                    contents: prompt,
-                });
+                
+                async function ai_prompt_maker(prompt: string) {
+                    const response = await fetch('http://localhost:3001/api/ai/prompt', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ prompt }),
+                    });
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`Backend error: ${response.status} ${errorText}`);
+                    }
+                    return response;
+                }
 
-                const text = response.text;
+                const aiResponseData = await ai_prompt_maker(prompt);
+                const data = await aiResponseData.json();
+                const text = data.choices?.[0]?.message?.content?.trim?.() ?? data.text?.trim?.() ?? '';
                 const [date, reason] = text.split('|').map(s => s.trim());
 
                 if (date && reason) {
@@ -155,12 +165,6 @@ Example: Friday, July 26|This provides optimal recovery for your ${appData.user_
             setIsLoadingDiet(true);
             setDietError(null);
             try {
-                if (!process.env.API_KEY) {
-                    console.warn("AI suggestion requires an API_KEY environment variable.");
-                    return; // Silently fail if no API key
-                }
-                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-                
                 const lastSession = appData.session_history.length > 0 ? appData.session_history[appData.session_history.length - 1] : null;
 
                 const prompt = `
@@ -186,12 +190,25 @@ Your Task:
 5. Add a final sentence explaining the reasoning. Do not use markdown like ** or *.
 `;
 
-                const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash-preview-04-17',
-                    contents: prompt,
-                });
+                async function ai_prompt_maker(prompt: string) {
+                    const response = await fetch('http://localhost:3001/api/ai/prompt', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ prompt }),
+                    });
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`Backend error: ${response.status} ${errorText}`);
+                    }
+                    return response;
+                }
 
-                setAiDietSuggestion(response.text);
+                const aiResponseData = await ai_prompt_maker(prompt);
+                const data = await aiResponseData.json();
+                const text = data.choices?.[0]?.message?.content?.trim?.() ?? data.text?.trim?.() ?? '';
+                if (text) {
+                    setAiDietSuggestion(text);
+                }
 
             } catch (error) {
                 console.error("Failed to get AI diet suggestion:", error);

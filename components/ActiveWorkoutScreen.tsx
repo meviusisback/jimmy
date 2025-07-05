@@ -2,8 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Workout, Exercise, ExercisePerformed, AppData, SetCompleted } from '../types';
 import { calculateNextWeight } from '../services/workoutLogic';
 import PlateDisplay from './PlateDisplay';
-import { GoogleGenAI } from "@google/genai";
+/* import { GoogleGenAI } from "@google/genai"; */
 import { AiIcon } from './icons';
+import ReactMarkdown from 'react-markdown';
 
 interface ActiveWorkoutScreenProps {
   workout: Workout;
@@ -45,9 +46,9 @@ const ActiveWorkoutScreen: React.FC<ActiveWorkoutScreenProps> = ({ workout, appD
         setAiError(null);
         setIsGeneratingAiPreExerciseMessage(true);
         try {
-            if (!process.env.API_KEY) throw new Error("API key not configured.");
+            /* if (!process.env.API_KEY) throw new Error("API key not configured.");
             const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
+ */
             const lastSessionWithExercise = appData.session_history
                 .filter(session => session.exercises_performed.some(e => e.name === currentExercise.name))
                 .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
@@ -88,12 +89,23 @@ Your response MUST have three parts, each on a new line:
 
 `;
 
-            const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash-preview-04-17',
-                contents: prompt,
-            });
+            async function ai_prompt_maker(prompt: string) {
+                    const response = await fetch('http://localhost:3001/api/ai/prompt', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ prompt }),
+                    });
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`Backend error: ${response.status} ${errorText}`);
+                    }
+                    return response;
+            }
 
-            setAiPreExerciseMessage(response.text);
+            const aiResponse = await ai_prompt_maker(prompt);
+            const data = await aiResponse.json();
+            const message = data.choices?.[0]?.message?.content?.trim?.() ?? data.text?.trim?.() ?? '';
+            setAiPreExerciseMessage(message);
 
         } catch (e) {
             console.error("Failed to generate pre-exercise message:", e);
@@ -134,8 +146,8 @@ Your response MUST have three parts, each on a new line:
     setIsGeneratingAiPostSetMessage(true);
     setAiError(null);
     try {
-        if (!process.env.API_KEY) throw new Error("API key not configured.");
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        /* if (!process.env.API_KEY) throw new Error("API key not configured.");
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY }); */
         
         const allSetsForThisExercise = completedSets[currentExercise.name] || [];
         const setIndex = allSetsForThisExercise.length; // 0-based index of the set *before* the one just logged
@@ -177,18 +189,29 @@ My Performance:
 - Context: ${performanceContext} ${workoutProgressContext}
 
 Your response must have two parts, each on a new line:
-1.  **Feedback (1 sentence):** Direct, sharp feedback on my performance for that set. Motivate me like you were shouting something inspiring. If I hit my target, be praiseworthy. If I missed, be encouraging but firm about the next set. Compare to my previous set if relevant.
-2.  **Quote (1 short quote):** A very short, punchy, motivational quote to carry me into my rest period. Don't attribute it.
+1.  **Feedback:** Direct, sharp feedback on my performance for that set. Motivate me like you were shouting something inspiring. If I hit my target, be praiseworthy. If I missed, be encouraging but firm about the next set. Compare to my previous set if relevant.
+2.  **Quote:** A very short, punchy, motivational quote to carry me into my rest period. Don't attribute it.
 
 Do not use markdown wrapping. Your entire response should be a single block of text with newlines separating the parts.
 `;
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-preview-04-17',
-            contents: prompt,
-        });
+        async function ai_prompt_maker(prompt: string) {
+                    const response = await fetch('http://localhost:3001/api/ai/prompt', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ prompt }),
+                    });
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`Backend error: ${response.status} ${errorText}`);
+                    }
+                    return response;
+          }
 
-        setAiPostSetMessage(response.text);
+        const aiResponse = await ai_prompt_maker(prompt);
+        const data = await aiResponse.json();
+        const message = data.choices?.[0]?.message?.content?.trim?.() ?? data.text?.trim?.() ?? '';
+        setAiPostSetMessage(message);
 
     } catch (e) {
         console.error("Failed to generate post-set message:", e);
@@ -258,7 +281,9 @@ Do not use markdown wrapping. Your entire response should be a single block of t
                       {isGeneratingAiPostSetMessage ? (
                           <p className="text-text-secondary italic">Coach is thinking...</p>
                       ) : aiPostSetMessage ? (
-                          <p className="text-text-primary font-semibold whitespace-pre-wrap">{aiPostSetMessage}</p>
+                          <div className="text-text-primary font-semibold whitespace-pre-wrap">
+                              <ReactMarkdown>{aiPostSetMessage}</ReactMarkdown>
+                          </div>
                       ) : (
                          <p className="text-text-secondary">Catch your breath, get ready!</p>
                       )}
@@ -293,7 +318,9 @@ Do not use markdown wrapping. Your entire response should be a single block of t
                   ) : aiError ? (
                       <p className="text-red-400 mt-1">{aiError}</p>
                   ) : aiPreExerciseMessage ? (
-                      <p className="text-text-primary whitespace-pre-wrap mt-1">{aiPreExerciseMessage}</p>
+                      <div className="text-text-primary whitespace-pre-wrap mt-1">
+                          <ReactMarkdown>{aiPreExerciseMessage}</ReactMarkdown>
+                      </div>
                   ) : null}
               </div>
           </div>
@@ -361,7 +388,11 @@ Do not use markdown wrapping. Your entire response should be a single block of t
         <div className="text-center p-4 bg-surface rounded-lg border border-success">
           <p className="text-success text-lg font-bold">Last set completed!</p>
           {isGeneratingAiPostSetMessage && <p className="text-text-secondary italic mt-2">Coach is preparing your final words...</p>}
-          {aiPostSetMessage && <p className="text-text-primary mt-2 font-semibold whitespace-pre-wrap">{aiPostSetMessage}</p>}
+          {aiPostSetMessage && (
+            <div className="text-text-primary mt-2 font-semibold whitespace-pre-wrap">
+                <ReactMarkdown>{aiPostSetMessage}</ReactMarkdown>
+            </div>
+          )}
         </div>
       )}
 

@@ -6,16 +6,28 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev:server": "nodemon --exec ts-node api/server.ts",
+    "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\""
   },
   "dependencies": {
-    "react-dom": "^19.1.0",
+    "@google/genai": "latest",
+    "cors": "^2.8.5",
+    "dotenv": "^17.0.1",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.5.1",
+    "openai": "^5.8.2",
     "react": "^19.1.0",
-    "recharts": "^3.0.2",
-    "@google/genai": "latest"
+    "react-dom": "^19.1.0",
+    "react-markdown": "^10.1.0",
+    "recharts": "^3.0.2"
   },
   "devDependencies": {
-    "@types/node": "^22.14.0",
+    "@types/express": "^5.0.3",
+    "@types/node": "^22.16.0",
+    "concurrently": "^9.2.0",
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2",
     "typescript": "~5.7.2",
     "vite": "^6.2.0"
   }

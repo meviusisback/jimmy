@@ -121,30 +121,50 @@ Generate the JSON response now. Fit the workout into the requested session durat
         setError(null);
 
         try {
-            if (!process.env.API_KEY) {
-                throw new Error("API key is not configured.");
-            }
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
             const prompt = buildPrompt();
 
-            const response = await ai.models.generateContent({
-              model: "gemini-2.5-flash-preview-04-17",
-              contents: prompt,
-              config: {
-                responseMimeType: "application/json",
-              },
-            });
+            async function ai_prompt_maker(prompt: string) {
+                const response = await fetch('http://localhost:3001/api/ai/prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt }),
+                });
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Backend error: ${response.status} ${errorText}`);
+                }
+                return response.json();
+            }
+
+            const aiResponse = await ai_prompt_maker(prompt);
+
             
-            let jsonStr = response.text.trim();
+
+            let jsonStr = aiResponse.choices?.[0]?.message?.content?.trim?.() ?? '';
+            if (!jsonStr) {
+                throw new Error("AI response was empty or invalid. Please check your API key, backend logs, or try again later.");
+            }
             const fenceRegex = /^```(\w*)?\s*\n?(.*?)\n?\s*```$/s;
             const match = jsonStr.match(fenceRegex);
             if (match && match[2]) {
                 jsonStr = match[2].trim();
             }
 
-            const newProgram = JSON.parse(jsonStr) as WorkoutProgram;
+            let newProgram: WorkoutProgram;
+            try {
+                newProgram = JSON.parse(jsonStr) as WorkoutProgram;
+            } catch (parseErr) {
+                throw new Error("Failed to parse AI response as JSON. Raw response: " + jsonStr);
+            }
+
             // Add basic validation
-            if (!newProgram.program_name || !newProgram.schedule || !newProgram.workouts || !newProgram.ai_description || !newProgram.frequency) {
+            if (
+                !newProgram.program_name ||
+                !newProgram.schedule ||
+                !newProgram.workouts ||
+                !newProgram.ai_description ||
+                !newProgram.frequency
+            ) {
                 throw new Error("Invalid program structure received from AI.");
             }
 
@@ -162,7 +182,11 @@ Generate the JSON response now. Fit the workout into the requested session durat
 
         } catch (e) {
             console.error("Failed to generate or parse workout plan:", e);
-            setError(`An error occurred while generating the plan. ${e instanceof Error ? e.message : 'Please check the console for details.'}`);
+            setError(
+                `An error occurred while generating the plan. ${
+                    e instanceof Error ? e.message : 'Please check the console for details.'
+                }`
+            );
         } finally {
             setIsLoading(false);
         }
