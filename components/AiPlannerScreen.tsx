@@ -83,7 +83,7 @@ Here are the rules for generation:
 5. "workouts": An array of workout objects. The number of objects must match the length of the "schedule".
 6. "workouts.id": Must be one of the IDs from the "schedule" array.
 7. "workouts.name": A descriptive name for the workout (e.g., "Push Day A").
-8. "workouts.exercises": The order of exercises is crucial. Always start with the most demanding compound lifts (e.g., Squats, Deadlifts, Bench Press) and finish with smaller isolation or accessory exercises. This ensures maximum performance and safety.
+8. "workouts.exercises": The order of exercises is crucial. Always start with the most demanding compound lifts (e.g., Squats, Deadlifts, Bench Press) and finish with smaller isolation or accessory exercises. This ensures maximum performance and safety. Make sure you only suggest exercises based on the equipment available (if bodyweight is not provided in the equipment, DO NOT suggest bodyweight exercises)
 9. "workouts.exercises.reps": This can be a number (e.g., 8) or the literal string 'max' (for exercises done to failure).
 10. "workouts.exercises.isBodyweight": (Optional) Set to true for bodyweight exercises like 'Pull-ups', 'Push-ups', 'Dips'. If omitted, it defaults to false.
 11. "workouts.exercises.targetWeight": This field is MANDATORY.
