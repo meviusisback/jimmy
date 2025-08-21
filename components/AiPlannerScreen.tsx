@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AppData, WorkoutProgram, ExperienceLevel, Sex, UserSettings } from '../types';
-import { GoogleGenAI } from "@google/genai";
+// import { GoogleGenAI } from "@google/genai";
 import { UserIcon } from './icons';
 
 interface AiPlannerScreenProps {

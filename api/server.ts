@@ -34,7 +34,7 @@ app.post('/api/ai/prompt', async (req, res) => {
     }
 
     const response = await openai.chat.completions.create({
-      model: "openrouter/cypher-alpha:free",
+      model: "moonshotai/kimi-k2:free",
       messages: [
         {
           role: "user",
